@@ -1,9 +1,9 @@
 const miss = require('mississippi');
 
-module.exports = (cb) => {
+module.exports = transform => {
 
   return miss.through.obj(
-    cb, done => done()
+    transform, done => done()
   );
 
 };

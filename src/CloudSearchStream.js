@@ -6,14 +6,9 @@ class CloudSearchStream extends Stream.Readable {
   constructor(options) {
     super(options);
 
-    if (!options.endpoint) throw new Error('Endpoint parameter is required.');
-    if (!options.region) throw new Error('Region parameter is required.');
-
-    options.objectMode = true;
-
-    this._connection = this._createConnection(options);
+    this._connection = options.connection;
+    this._step = options.step || 500;
     this._processed = 0;
-    this._step = 500;
 
     this.fetch('initial', err => {
       if (err) {
@@ -21,13 +16,6 @@ class CloudSearchStream extends Stream.Readable {
       }
 
       this.push(null);
-    });
-  }
-
-  _createConnection(options) {
-    return new AWS.CloudSearchDomain({
-      endpoint: options.endpoint,
-      region: options.region
     });
   }
 

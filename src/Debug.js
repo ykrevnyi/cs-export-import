@@ -1,6 +1,6 @@
 const miss = require('mississippi');
 
-module.exports = (cb) => {
+module.exports = cb => {
 
   return miss.through.obj(
     (chunk, enc, done) => {

@@ -1,34 +1,31 @@
-const _ = require('lodash');
-const Stream = require('stream');
+const miss = require('mississippi');
 
-class Batcher extends Stream.Transform {
+module.exports = (options) => {
+  let buffer = [];
+  let bufferSize = options.bufferSize || 10;
 
-  constructor(options) {
-    super(options);
+  return miss.through.obj(
+    _transform, _flush
+  );
 
-    this.buffer = [];
-    this.bufferSize = options.bufferSize || 10;
-  }
+  function _transform(document, enc, done) {
+    buffer.push(document);
 
-  _transform(document, enc, done) {
-    this.buffer.push(document);
-
-    if (this.buffer.length >= this.bufferSize) {
-      this.push(this.buffer);
-      this.buffer = [];
-    }
-    done();
-  }
-
-  _flush(done) {
-    if (this.buffer.length) {
-      this.push(this.buffer);
-      this.buffer = [];
+    if (buffer.length >= bufferSize) {
+      this.push(buffer);
+      buffer = [];
     }
 
     done();
   }
 
-}
+  function _flush(done) {
+    if (buffer.length) {
+      this.push(buffer);
+      buffer = [];
+    }
 
-module.exports = Batcher;
+    done();
+  }
+
+};
