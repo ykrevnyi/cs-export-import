@@ -21,29 +21,37 @@ const CS = new CloudSearch({
   region: 'eu-west-1'
 });
 
-// function syncDocuments(options) {
-//   options = options || {};
-//
-//   if (!options._transform) throw new Error('You have to implement _transform function!');
-//
-//   const flush = options.flush || function(done) {done()};
-//   const step = options.step || 500;
-//   const resultPath = options.resultPath || './data/import-result.json';
-//
-//   const $mapper = Transform(
-//     options._transform, flush
-//   );
-//
-//   CS.getStream({step: step})
-//     .pipe(ProcessingStats())
-//     .pipe(DocumentExtractor())
-//     .pipe($mapper)
-//     .pipe(Batcher({bufferSize: 500}))
-//     .pipe(Uploader(CS, {maxConcurrency: 10}))
-//     .pipe(UploadStats())
-//     .pipe(JSONStream.stringify())
-//     .pipe(fs.createWriteStream(resultPath));
-// }
+function syncDocuments(options) {
+  options = options || {};
+
+  if (!options._transform) throw new Error('You have to implement _transform function!');
+
+  const flush = options.flush || function(done) {done()};
+  const step = options.step || 500;
+  const resultPath = options.resultPath || './data/import-result.json';
+
+  const $mapper = Transform(
+    options._transform, flush
+  );
+
+  sourceCS = new CloudSearch({
+    endpoint: 'search-boex-staging-kzcp2zugbb6ijrvxgcz2rhe2gy.eu-west-1.cloudsearch.amazonaws.com',
+    region: 'eu-west-1'
+  });
+  destCS = new CloudSearch({
+    endpoint: 'search-test-hjp7plskkkzj5zhe7taidjswkq.eu-west-1.cloudsearch.amazonaws.com',
+    region: 'eu-west-1'
+  });
+
+  sourceCS.getStream({step: step})
+    .pipe(DocumentExtractor())
+    .pipe($mapper)
+    .pipe(Batcher({bufferSize: 500}))
+    .pipe(Uploader(destCS, {maxConcurrency: 10}))
+    .pipe(UploadStats())
+    .pipe(JSONStream.stringify())
+    .pipe(fs.createWriteStream(resultPath));
+}
 
 function importDocuments(options) {
   options = options || {};

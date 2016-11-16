@@ -1,7 +1,7 @@
 const miss = require('mississippi');
 const ProgressBar = require('progress');
 
-module.exports = (cb) => {
+module.exports = cb => {
   let progressBar = null;
 
   return miss.through.obj(
