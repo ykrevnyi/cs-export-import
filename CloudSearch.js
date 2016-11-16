@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const CloudSearchStream = require('./CloudSearchStream');
+const CloudSearchStream = require('./streams/CloudSearchStream');
 
 class CloudSearch {
 
