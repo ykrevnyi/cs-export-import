@@ -1,5 +1,4 @@
 const fs = require('fs');
-const _ = require('lodash');
 const miss = require('mississippi');
 const JSONStream = require('JSONStream');
 const CloudSearch = require('./CloudSearch');
@@ -12,6 +11,7 @@ const UploadStats = require('./streams/UploadStats');
 const DocumentExtractor = require('./streams/DocumentExtractor');
 
 module.exports = {
+  sync: syncDocuments,
   import: importDocuments,
   export: exportDocuments
 };
@@ -21,30 +21,64 @@ const CS = new CloudSearch({
   region: 'eu-west-1'
 });
 
+// function syncDocuments(options) {
+//   options = options || {};
+//
+//   if (!options._transform) throw new Error('You have to implement _transform function!');
+//
+//   const flush = options.flush || function(done) {done()};
+//   const step = options.step || 500;
+//   const resultPath = options.resultPath || './data/import-result.json';
+//
+//   const $mapper = Transform(
+//     options._transform, flush
+//   );
+//
+//   CS.getStream({step: step})
+//     .pipe(ProcessingStats())
+//     .pipe(DocumentExtractor())
+//     .pipe($mapper)
+//     .pipe(Batcher({bufferSize: 500}))
+//     .pipe(Uploader(CS, {maxConcurrency: 10}))
+//     .pipe(UploadStats())
+//     .pipe(JSONStream.stringify())
+//     .pipe(fs.createWriteStream(resultPath));
+// }
+
 function importDocuments(options) {
+  options = options || {};
+  const sourcePath = options.sourcePath || './data/export.json';
+  const resultPath = options.resultPath || './data/import-result.json';
+
   console.log(' -> Importing data..');
 
-  const $input = fs.createReadStream(`${options.source}`, {encoding: 'utf-8'});
-
+  const $input = fs.createReadStream(sourcePath, {encoding: 'utf-8'});
   $input
     .pipe(JSONStream.parse('*'))
     .pipe(Batcher({bufferSize: 500}))
     .pipe(Uploader(CS, {maxConcurrency: 10}))
     .pipe(UploadStats())
     .pipe(JSONStream.stringify())
-    .pipe(fs.createWriteStream(`${options.resultDest}`));
+    .pipe(fs.createWriteStream(resultPath));
 }
 
 function exportDocuments(options) {
+  options = options || {};
+
+  if (!options._transform) throw new Error('You have to implement _transform function!');
+
+  const flush = options.flush || function(done) {done()};
+  const step = options.step || 500;
+  const resultPath = options.resultPath || './data/export.json';
+
   const $mapper = Transform(
-    options._transform,
-    options._flush
+    options._transform, flush
   );
 
-  CS.getStream({step: options.step})
+  CS.getStream({step: step})
     .pipe(ProcessingStats())
     .pipe(DocumentExtractor())
     .pipe($mapper)
     .pipe(JSONStream.stringify())
-    .pipe(fs.createWriteStream(`${options.dest}`))
+    .pipe(fs.createWriteStream(resultPath));
 };
