@@ -2,6 +2,8 @@ const fs = require('fs');
 const miss = require('mississippi');
 const JSONStream = require('JSONStream');
 const CloudSearch = require('./CloudSearch');
+const ProgressBar = require('progress');
+const Multiprogress = require("multi-progress");
 const Batcher = require('./streams/Batcher');
 const Uploader = require('./streams/Uploader');
 const Debug = require('./streams/Debug');
@@ -9,6 +11,8 @@ const Transform = require('./streams/Transform');
 const ProcessingStats = require('./streams/ProcessingStats');
 const UploadStats = require('./streams/UploadStats');
 const DocumentExtractor = require('./streams/DocumentExtractor');
+
+const multibar = new Multiprogress(process.stderr);
 
 module.exports = {
   sync: syncDocuments,
@@ -34,21 +38,24 @@ function syncDocuments(options) {
     options._transform, flush
   );
 
+  console.log(' -> Syncing CloudSearch Domains');
+
   sourceCS = new CloudSearch({
     endpoint: 'search-boex-staging-kzcp2zugbb6ijrvxgcz2rhe2gy.eu-west-1.cloudsearch.amazonaws.com',
     region: 'eu-west-1'
   });
   destCS = new CloudSearch({
-    endpoint: 'search-test-hjp7plskkkzj5zhe7taidjswkq.eu-west-1.cloudsearch.amazonaws.com',
+    endpoint: 'search-test2-mixixtnbbi42nix7eyb73vyyda.eu-west-1.cloudsearch.amazonaws.com',
     region: 'eu-west-1'
   });
 
   sourceCS.getStream({step: step})
+    .pipe(ProcessingStats(multibar))
     .pipe(DocumentExtractor())
     .pipe($mapper)
     .pipe(Batcher({bufferSize: 500}))
     .pipe(Uploader(destCS, {maxConcurrency: 10}))
-    .pipe(UploadStats())
+    .pipe(UploadStats(multibar))
     .pipe(JSONStream.stringify())
     .pipe(fs.createWriteStream(resultPath));
 }
